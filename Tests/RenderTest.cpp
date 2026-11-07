@@ -59,6 +59,29 @@ int main (int argc, char** argv)
         std::unique_ptr<juce::AudioFormatWriter> w (wav.createWriterFor (new juce::FileOutputStream (f), sr, 2, 24, {}, 0));
         w->writeFromAudioSampleBuffer (all, 0, all.getNumSamples());
     }
+    // Automation stress: move every parameter every block while playing.
+    {
+        auto& params = p.getParameters();
+        int automatable = 0;
+        for (auto* prm : params) automatable += prm->isAutomatable() ? 1 : 0;
+        std::cout << "parameters=" << params.size() << " automatable=" << automatable << "\n";
+        juce::Random r (1);
+        bool bad = false;
+        for (int blk = 0; blk < 400; ++blk)
+        {
+            juce::MidiBuffer m;
+            if (blk % 50 == 0) m.addEvent (juce::MidiMessage::noteOn (1, 60, (juce::uint8) 100), 0);
+            if (blk % 50 == 40) m.addEvent (juce::MidiMessage::noteOff (1, 60), 0);
+            for (auto* prm : params)
+                if (auto* wp = dynamic_cast<juce::AudioProcessorParameterWithID*> (prm); wp && wp->paramID != "m_ring" && ! wp->paramID.endsWith ("power"))
+                    prm->setValueNotifyingHost (r.nextFloat());
+            p.processBlock (buf, m);
+            for (int c = 0; c < 2; ++c) for (int i = 0; i < bs; ++i) bad |= ! std::isfinite (buf.getSample (c, i));
+        }
+        std::cout << "automation sweep nan=" << bad << "\n";
+        if (bad || automatable != params.size()) return 3;
+        for (auto* prm : params) prm->setValueNotifyingHost (prm->getDefaultValue());
+    }
     std::unique_ptr<juce::AudioProcessorEditor> ed (p.createEditor());
     ed->setSize (1400, 920);
     p.activeLane = 1;

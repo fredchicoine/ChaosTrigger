@@ -30,31 +30,31 @@ juce::AudioProcessorValueTreeState::ParameterLayout ChaosTriggerProcessor::creat
     AudioProcessorValueTreeState::ParameterLayout l;
     auto addFx = [&l] (const String& pre, const String& n)
     {
-        l.add (std::make_unique<AudioParameterFloat>(ParameterID { pre + "dist", 1 }, n + "Distortion", NormalisableRange<float> (0, 1), 0.0f));
-        l.add (std::make_unique<AudioParameterFloat>(ParameterID { pre + "haas", 1 }, n + "Haas (ms)", NormalisableRange<float> (0, 100, 0.1f), 0.0f));
-        l.add (std::make_unique<AudioParameterFloat>(ParameterID { pre + "crush", 1 }, n + "Bitcrush (bits)", NormalisableRange<float> (1, 24, 0.01f), 24.0f));
-        l.add (std::make_unique<AudioParameterFloat>(ParameterID { pre + "smash", 1 }, n + "Smash", NormalisableRange<float> (0, 1), 0.0f));
+        l.add (std::make_unique<AudioParameterFloat>(ParameterID { pre + "dist", 1 }, n + "DIST", NormalisableRange<float> (0, 1), 0.0f));
+        l.add (std::make_unique<AudioParameterFloat>(ParameterID { pre + "haas", 1 }, n + "HAAS (ms)", NormalisableRange<float> (0, 100, 0.1f), 0.0f));
+        l.add (std::make_unique<AudioParameterFloat>(ParameterID { pre + "crush", 1 }, n + "CRUSH (bits)", NormalisableRange<float> (1, 24, 0.01f), 24.0f));
+        l.add (std::make_unique<AudioParameterFloat>(ParameterID { pre + "smash", 1 }, n + "SMASH", NormalisableRange<float> (0, 1), 0.0f));
     };
-    addFx ("m_", "Master ");
-    l.add (std::make_unique<AudioParameterBool> (ParameterID { "m_ring", 1 }, "Ring Mod", false));
-    l.add (std::make_unique<AudioParameterFloat>(ParameterID { "m_ringHz", 1 }, "Ring Mod Freq",
+    addFx ("m_", "MASTER ");
+    l.add (std::make_unique<AudioParameterBool> (ParameterID { "m_ring", 1 }, "MASTER RING MOD", false, AudioParameterBoolAttributes().withStringFromValueFunction ([] (bool v, int) { return String (v ? "ON" : "OFF"); })));
+    l.add (std::make_unique<AudioParameterFloat>(ParameterID { "m_ringHz", 1 }, "MASTER RING HZ",
                                                  NormalisableRange<float> (20.0f, 4000.0f, 0.1f, 0.3f), 440.0f));
-    l.add (std::make_unique<AudioParameterChoice>(ParameterID { "m_fmode", 1 }, "Filter Mode",
-                                                  StringArray { "Off", "Low Pass 24", "Band Pass 6", "High Pass 12" }, 0));
-    l.add (std::make_unique<AudioParameterFloat>(ParameterID { "m_cutoff", 1 }, "Cutoff",
+    l.add (std::make_unique<AudioParameterChoice>(ParameterID { "m_fmode", 1 }, "MASTER FILTER",
+                                                  StringArray { "OFF", "LP 24dB", "BP 6dB", "HP 12dB" }, 0));
+    l.add (std::make_unique<AudioParameterFloat>(ParameterID { "m_cutoff", 1 }, "MASTER CUTOFF",
                                                  NormalisableRange<float> (20.0f, 20000.0f, 0.1f, 0.25f), 20000.0f));
-    l.add (std::make_unique<AudioParameterFloat>(ParameterID { "m_res", 1 }, "Resonance", NormalisableRange<float> (0, 1), 0.0f));
+    l.add (std::make_unique<AudioParameterFloat>(ParameterID { "m_res", 1 }, "MASTER RES", NormalisableRange<float> (0, 1), 0.0f));
 
-    l.add (std::make_unique<AudioParameterInt>  (ParameterID { "pitch", 1 }, "Pitch", -12, 12, 0));
-    l.add (std::make_unique<AudioParameterBool> (ParameterID { "legato", 1 }, "Legato", false));
-    l.add (std::make_unique<AudioParameterBool> (ParameterID { "free", 1 }, "Free Run", false));
-    l.add (std::make_unique<AudioParameterFloat>(ParameterID { "freeRate", 1 }, "Free Rate",
+    l.add (std::make_unique<AudioParameterInt>  (ParameterID { "pitch", 1 }, "PITCH", -12, 12, 0));
+    l.add (std::make_unique<AudioParameterBool> (ParameterID { "legato", 1 }, "RETRIG / LEGATO", false, AudioParameterBoolAttributes().withStringFromValueFunction ([] (bool v, int) { return String (v ? "LEGATO" : "RETRIG"); })));
+    l.add (std::make_unique<AudioParameterBool> (ParameterID { "free", 1 }, "SYNC / FREE", false, AudioParameterBoolAttributes().withStringFromValueFunction ([] (bool v, int) { return String (v ? "FREE" : "SYNC"); })));
+    l.add (std::make_unique<AudioParameterFloat>(ParameterID { "freeRate", 1 }, "FREE RATE (Hz)",
                                                  NormalisableRange<float> (0.5f, 40.0f, 0.01f, 0.4f), 8.0f));
-    l.add (std::make_unique<AudioParameterChoice>(ParameterID { "division", 1 }, "Chaos Divider",
+    l.add (std::make_unique<AudioParameterChoice>(ParameterID { "division", 1 }, "CHAOS DIVIDER",
                                                   StringArray { "1/128","1/64","1/32","1/16","1/8","1/4","1/2","1/1" }, 3));
-    l.add (std::make_unique<AudioParameterChoice>(ParameterID { "feel", 1 }, "Feel",
-                                                  StringArray { "Straight","Triplet","Dotted","Swing" }, 0));
-    l.add (std::make_unique<AudioParameterFloat>(ParameterID { "swing", 1 }, "Swing Amount",
+    l.add (std::make_unique<AudioParameterChoice>(ParameterID { "feel", 1 }, "CHAOS DIVIDER FEEL",
+                                                  StringArray { "STRAIGHT","TRIPLET","DOTTED","SWING" }, 0));
+    l.add (std::make_unique<AudioParameterFloat>(ParameterID { "swing", 1 }, "SWING AMOUNT",
                                                  NormalisableRange<float> (0.0f, 0.75f), 0.33f));
     StringArray pats;
     for (int i = 0; i < 24; ++i)
@@ -63,25 +63,25 @@ juce::AudioProcessorValueTreeState::ParameterLayout ChaosTriggerProcessor::creat
         pats.add (String (i + 1) + " - " + s);
     }
     pats.add ("66 - RANDOOM");
-    l.add (std::make_unique<AudioParameterChoice>(ParameterID { "pattern", 1 }, "Chaos Picker", pats, 0));
+    l.add (std::make_unique<AudioParameterChoice>(ParameterID { "pattern", 1 }, "CHAOS PICKER", pats, 0));
 
     for (int i = 0; i < kNumLanes; ++i)
     {
-        auto n = "Lane " + String (i + 1) + " ";
+        auto n = "LANE " + String (i + 1) + " ";
         NormalisableRange<float> t (0.0f, 4.0f, 0.001f, 0.3f);
-        l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "a"), 1 }, n + "Attack",  t, 0.002f));
-        l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "d"), 1 }, n + "Decay",   t, 0.1f));
-        l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "s"), 1 }, n + "Sustain", NormalisableRange<float> (0, 1), 1.0f));
-        l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "r"), 1 }, n + "Release", t, 0.02f));
-        l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "pan"), 1 }, n + "Pan", NormalisableRange<float> (-1, 1), 0.0f));
-        l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "vol"), 1 }, n + "Volume",
+        l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "a"), 1 }, n + "A (Attack)",  t, 0.002f));
+        l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "d"), 1 }, n + "D (Decay)",   t, 0.1f));
+        l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "s"), 1 }, n + "S (Sustain)", NormalisableRange<float> (0, 1), 1.0f));
+        l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "r"), 1 }, n + "R (Release)", t, 0.02f));
+        l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "pan"), 1 }, n + "PAN", NormalisableRange<float> (-1, 1), 0.0f));
+        l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "vol"), 1 }, n + "VOL (dB)",
                                                      NormalisableRange<float> (-60.0f, 6.0f, 0.1f, 2.0f), 0.0f));
-        l.add (std::make_unique<AudioParameterBool> (ParameterID { laneId (i, "power"), 1 }, n + "Power", true));
-        l.add (std::make_unique<AudioParameterBool> (ParameterID { laneId (i, "mono"), 1 }, n + "Mono", false));
-        l.add (std::make_unique<AudioParameterBool> (ParameterID { laneId (i, "rev"), 1 }, n + "Reverse", false));
+        l.add (std::make_unique<AudioParameterBool> (ParameterID { laneId (i, "power"), 1 }, n + "POWER", true, AudioParameterBoolAttributes().withStringFromValueFunction ([] (bool v, int) { return String (v ? "ON" : "OFF"); })));
+        l.add (std::make_unique<AudioParameterBool> (ParameterID { laneId (i, "mono"), 1 }, n + "MONO", false, AudioParameterBoolAttributes().withStringFromValueFunction ([] (bool v, int) { return String (v ? "ON" : "OFF"); })));
+        l.add (std::make_unique<AudioParameterBool> (ParameterID { laneId (i, "rev"), 1 }, n + "REVERSE", false, AudioParameterBoolAttributes().withStringFromValueFunction ([] (bool v, int) { return String (v ? "ON" : "OFF"); })));
         addFx (laneId (i, ""), n);
-        l.add (std::make_unique<AudioParameterChoice>(ParameterID { laneId (i, "chorus"), 1 }, n + "Chorus",
-                                                      StringArray { "Off", "I", "II", "I+II" }, 0));
+        l.add (std::make_unique<AudioParameterChoice>(ParameterID { laneId (i, "chorus"), 1 }, n + "CHORUS",
+                                                      StringArray { "OFF", "I", "II", "I+II" }, 0));
     }
     return l;
 }

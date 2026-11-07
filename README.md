@@ -38,8 +38,16 @@ The AU target only builds on macOS. Copy the `.vst3` folder into your system VST
 ## Loading samples
 Pick a lane number (1–4) next to LOAD SAMPLE and press LOAD SAMPLE. You can also click a waveform, or drag a file onto it.
 
-## Installing the downloaded builds
-- **Windows:** copy `Chaos Trigger.vst3` into `C:\Program Files\Common Files\VST3`.
-- **Mac:** copy `Chaos Trigger.vst3` into `~/Library/Audio/Plug-Ins/VST3` and `Chaos Trigger.component` into
-  `~/Library/Audio/Plug-Ins/Components`. The plugin isn't signed by Apple, so before using it, run this
-  once in Terminal: `xattr -cr ~/Library/Audio/Plug-Ins`
+## Installing
+Download the installer for your system from the Releases page (or from the Actions tab for test builds):
+- **Windows:** run `ChaosTrigger-x.y.z-Windows-Setup.exe`. It installs the VST3 into
+  `C:\Program Files\Common Files\VST3` and, if you choose, the standalone app. Windows SmartScreen may
+  warn because the installer isn't code-signed: click **More info → Run anyway**.
+- **Mac:** open `ChaosTrigger-x.y.z-Mac.pkg` and pick VST3, AU and/or Standalone. Because the installer isn't
+  signed by Apple yet, macOS may refuse to open it the first time: right-click the .pkg, choose **Open**,
+  then **Open** again (or System Settings → Privacy & Security → **Open Anyway**).
+- Rescan plugins in your DAW afterwards.
+
+## Publishing a release
+Create a version tag and push it, for example `git tag v0.1.0 && git push origin v0.1.0`. GitHub builds both installers
+and attaches them to a new release on the Releases page.

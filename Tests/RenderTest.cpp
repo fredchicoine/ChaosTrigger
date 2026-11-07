@@ -11,7 +11,11 @@ int main (int argc, char** argv)
         auto s = p.getSample (l);
         std::cout << "factory lane " << l + 1 << ": " << (s ? s->name : juce::String ("MISSING")) << " "
                   << (s ? s->buffer.getNumSamples() : 0) << "\n";
+       #if CHAOS_HAS_DEMO_SAMPLES
         if (! s) return 4;
+       #else
+        if (s) return 4;   // public edition must ship empty
+       #endif
     }
     const double sr = 48000; const int bs = 512;
     auto dir = juce::File (argv[1]);

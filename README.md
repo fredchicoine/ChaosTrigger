@@ -8,11 +8,11 @@ VST3 · AU · Standalone. For Windows and macOS.
 
 <br>
 
-<a href="https://github.com/fredchicoine/ChaosTrigger/releases/latest/download/ChaosTrigger-Windows-Setup.exe"><img src="https://img.shields.io/badge/DOWNLOAD-WINDOWS-e0202a?style=for-the-badge&logo=windows&logoColor=white" height="56" alt="Download for Windows"></a>
+<a href="https://github.com/fredchicoine/ChaosTrigger-Public/releases/latest/download/ChaosTrigger-Windows-Setup.exe"><img src="https://img.shields.io/badge/DOWNLOAD-WINDOWS-e0202a?style=for-the-badge&logo=windows&logoColor=white" height="56" alt="Download for Windows"></a>
 &nbsp;&nbsp;
-<a href="https://github.com/fredchicoine/ChaosTrigger/releases/latest/download/ChaosTrigger-Mac.pkg"><img src="https://img.shields.io/badge/DOWNLOAD-MAC-e0202a?style=for-the-badge&logo=apple&logoColor=white" height="56" alt="Download for Mac"></a>
+<a href="https://github.com/fredchicoine/ChaosTrigger-Public/releases/latest/download/ChaosTrigger-Mac.pkg"><img src="https://img.shields.io/badge/DOWNLOAD-MAC-e0202a?style=for-the-badge&logo=apple&logoColor=white" height="56" alt="Download for Mac"></a>
 
-<sub>Windows 10/11 (64-bit) · macOS 11 or later, Apple Silicon and Intel · <a href="https://github.com/fredchicoine/ChaosTrigger/releases">all versions</a></sub>
+<sub>Windows 10/11 (64-bit) · macOS 11 or later, Apple Silicon and Intel · <a href="https://github.com/fredchicoine/ChaosTrigger-Public/releases">all versions</a></sub>
 
 </div>
 
@@ -20,16 +20,17 @@ VST3 · AU · Standalone. For Windows and macOS.
 
 ## Contents
 1. [What is Chaos Trigger?](#what-is-chaos-trigger)
-2. [Installing](#installing)
-3. [Quick start: your first chaos in 60 seconds](#quick-start)
-4. [The panel, control by control](#the-panel)
-5. [Lane effects](#lane-effects)
-6. [Master section](#master-section)
-7. [Playing without MIDI](#playing-without-midi) · [KEY TRACK](#playing-notes-like-a-sampler-key-track)
-8. [Multi-output routing (separate lanes to separate tracks)](#multi-output-routing)
-9. [Automation](#automation)
-10. [Tips and recipes](#tips-and-recipes)
-11. [Troubleshooting / FAQ](#troubleshooting--faq)
+2. [How it works](#how-it-works)
+3. [Installing](#installing)
+4. [Quick start: your first chaos in 60 seconds](#quick-start)
+5. [The panel, control by control](#the-panel)
+6. [Lane effects](#lane-effects)
+7. [Master section](#master-section)
+8. [Playing without MIDI](#playing-without-midi) · [KEY TRACK](#playing-notes-like-a-sampler-key-track)
+9. [Multi-output routing (separate lanes to separate tracks)](#multi-output-routing)
+10. [Automation](#automation)
+11. [Tips and recipes](#tips-and-recipes)
+12. [Troubleshooting / FAQ](#troubleshooting--faq)
 
 ---
 
@@ -47,6 +48,54 @@ that loop that would be playing at that moment. Load four loops at the same temp
 re-arranged beat. Load loops at different tempos and you get **666% chaos**.
 
 > **Tip:** For a steady groove, prepare your loops at the same tempo and length before loading them.
+
+
+## How it works
+
+Under the hood, Chaos Trigger has three parts:
+
+```
+             ┌──────────── 4 LOOPS RUN TOGETHER, IN TIME ────────────┐
+ MIDI key ─► │ Lane 1 ▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸ │
+ or          │ Lane 2 ▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸ │
+ on-screen   │ Lane 3 ▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸ │
+ keyboard    │ Lane 4 ▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸▸ │
+             └───────────────────────────────────────────────────────┘
+                                  │
+        THE STEP SEQUENCER opens one lane's gate (ADSR) per step
+                                  │
+         step:   1     2     3     4     5     6     7     8
+         lane:  [1]   [2]   [3]   [4]   [1]   [2]   [3]   [4]    ← pattern 1 (1234)
+                                  │
+     LANE FX ─► PAN/VOL ─► lane output ─► MASTER FX ─► your DAW
+```
+
+**1. The loops (the "tape").**
+When you press a key, all four loops start at the same moment and keep running, in time with each other,
+for as long as you hold the key. You don't hear them yet: every lane is muted behind its gate.
+
+**2. The step sequencer (the "hand on the faders").**
+At every step (for example every 1/16 note), the sequencer moves to the next lane in the **Chaos Picker** order and
+**opens that lane's ADSR envelope**. The previous lane's envelope goes into its Release.
+You hear *the part of that loop that is playing at that exact moment*, so the result stays on the groove.
+- **Step speed** = Chaos Divider + feel (SYNC mode), or Free Rate (FREE mode).
+- **Order** = one of the 24 patterns, RANDOOM (random lane every step) or BANK SCROLL (a new random pattern every cycle).
+- **Envelope** = how each slice sounds: hard gate, soft fade, pluck, or long overlapping tails.
+
+**3. The sound shaping.**
+Each lane has its own effects, pan and volume, and goes to its own stereo output. Then the master section
+(distortion, crush, smash, ring mod, filter, haas) processes everything.
+
+**Pitch never changes the timing.** The master PITCH, each lane's PITCH and the note you play (KEY TRACK) are added together.
+A granular pitch shifter applies them while the loops keep running at their original speed,
+so you can play melodies with a loop and it never drifts out of the groove.
+
+**RETRIG vs LEGATO.** With RETRIG, each new key starts everything again: loops from the beginning, sequence from step 1.
+With LEGATO, a new key only restarts the sequence, and the loops carry on, so you can play fast without resetting the groove.
+
+**Example.** Your four loops are at 150 BPM, the divider is set to 1/16 and the pattern to 13 (3124). You hold C3 for one bar:
+you hear 16 slices: lane 3, 1, 2, 4, 3, 1, 2, 4… Each slice is 1/16 long and comes from the right spot in its loop.
+Now play G3 instead: the same rhythm, 7 semitones higher.
 
 ---
 
@@ -81,8 +130,8 @@ Files are installed to `/Library/Audio/Plug-Ins/VST3`, `/Library/Audio/Plug-Ins/
 ## Quick start
 
 1. Create an **instrument track** in your DAW and insert **Chaos Trigger**.
-   It opens with **4 demo loops** already loaded (hi-hats, drum break, two pads), so you can play right away.
-2. To use your own loops, click a lane's waveform box and pick a file. You can also **drag an audio file** onto it.
+2. Click lane **1**'s waveform box and pick a loop. You can also **drag an audio file** onto it.
+   Do the same for lanes 2, 3 and 4. Drums, hats, pads, vocals… anything works.
 3. Make sure **SYNC** and **RETRIG** are lit (they're the defaults).
 4. In **CHAOS DIVIDER**, pick **16** (1/16 notes) and **STRAIGHT**.
 5. Press play in your DAW and **hold a key**: on your MIDI keyboard, by clicking the **on-screen keyboard**,
@@ -317,8 +366,8 @@ Chaos Trigger remembers where each file is. If you moved or renamed the files, l
 **Does the MIDI note change the pitch?**
 Yes, when **KEY TRACK** is on: C3 = original pitch. The loops' length and tempo never change. Turn KEY TRACK off to make every key play at the original pitch.
 
-**Can I remove the demo loops?**
-Just load your own files over them. Your choice is saved with your project.
+**Which audio files can I load?**
+WAV, AIFF, FLAC, OGG and MP3, in any length, mono or stereo. Loops of up to 10 minutes are supported.
 
 ---
 

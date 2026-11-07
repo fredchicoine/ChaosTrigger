@@ -18,6 +18,11 @@ To publish a release, go to **Actions → Build Chaos Trigger → Run workflow**
 You can also push a `v*` tag. The installers are attached to the release with fixed file names, so the
 download buttons in the README always point to the newest version.
 
+## Editions
+- **Demo / private edition:** built when `Resources/Samples/*.wav` exist. The 4 demo loops are compiled in and preloaded.
+- **Public edition:** built with `-DCHAOS_DEMO_SAMPLES=OFF`, or automatically when `Resources/Samples` is absent.
+  The plugin starts with empty lanes. The public repository doesn't contain the samples at all.
+
 ## Demo samples
 `Resources/Samples/*.wav` are compiled into the plugin (`juce_add_binary_data`) and loaded into lanes 1–4 by default.
 A project that uses them saves `factory:N` instead of a file path.

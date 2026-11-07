@@ -1,6 +1,8 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-#include "BinaryData.h"
+#if CHAOS_HAS_DEMO_SAMPLES
+ #include "BinaryData.h"
+#endif
 
 const int kPatterns[24][4] = {
     {0,1,2,3},{0,1,3,2},{0,2,1,3},{0,2,3,1},{0,3,1,2},{0,3,2,1},
@@ -138,6 +140,7 @@ bool ChaosTriggerProcessor::loadSample (int lane, const juce::File& file)
                            file.getFileName(), file.getFullPathName());
 }
 
+#if CHAOS_HAS_DEMO_SAMPLES
 // Built-in demo loops, compiled into the plugin (Resources/Samples).
 static const struct { const char* data; int size; const char* name; } kFactory[kNumLanes] = {
     { BinaryData::Lane1_AU_HDT2_150_hihat_sparrow_wav,      BinaryData::Lane1_AU_HDT2_150_hihat_sparrow_wavSize,      "AU_HDT2_150_hihat_sparrow.wav" },
@@ -152,6 +155,10 @@ bool ChaosTriggerProcessor::loadFactorySample (int lane)
     return loadFromReader (lane, std::unique_ptr<juce::AudioFormatReader> (formatManager.createReaderFor (std::move (stream))),
                            f.name, "factory:" + juce::String (lane));
 }
+
+#else
+bool ChaosTriggerProcessor::loadFactorySample (int) { return false; }   // public edition: no demo loops
+#endif
 
 bool ChaosTriggerProcessor::loadFromReader (int lane, std::unique_ptr<juce::AudioFormatReader> reader,
                                             const juce::String& name, const juce::String& path)

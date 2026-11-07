@@ -16,9 +16,21 @@ juce_add_plugin(ChaosTrigger
     IS_MIDI_EFFECT FALSE
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
+# Demo loops: ON by default when Resources/Samples exists. Public builds use -DCHAOS_DEMO_SAMPLES=OFF.
 file(GLOB FACTORY_SAMPLES "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Samples/*.wav")
-juce_add_binary_data(ChaosTriggerData SOURCES ${FACTORY_SAMPLES})
-set_target_properties(ChaosTriggerData PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+if(FACTORY_SAMPLES)
+    option(CHAOS_DEMO_SAMPLES "Build the demo loops into the plugin" ON)
+else()
+    set(CHAOS_DEMO_SAMPLES OFF)
+endif()
+if(CHAOS_DEMO_SAMPLES)
+    juce_add_binary_data(ChaosTriggerData SOURCES ${FACTORY_SAMPLES})
+    set_target_properties(ChaosTriggerData PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+    target_compile_definitions(ChaosTriggerData INTERFACE CHAOS_HAS_DEMO_SAMPLES=1)
+else()
+    add_library(ChaosTriggerData INTERFACE)
+endif()
+message(STATUS "Chaos Trigger demo samples: ${CHAOS_DEMO_SAMPLES}")
 
 target_sources(ChaosTrigger PRIVATE
     Source/PluginProcessor.cpp

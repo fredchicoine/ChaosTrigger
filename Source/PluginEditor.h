@@ -35,7 +35,7 @@ struct LaneStrip
     juce::Label name;
     juce::TextButton mono { "MONO" }, rev { "REVERSE" }, number;
     std::unique_ptr<WaveView> wave;
-    juce::Slider a, d, s, r, pan, vol;
+    juce::Slider a, d, s, r, pitch, pan, vol;
     juce::Slider dist, haas, crush, smash;
     juce::TextButton chorus { "CHORUS OFF" };
     juce::ToggleButton power { "POWER" };
@@ -65,7 +65,12 @@ private:
     juce::Label dividerTitle, pickerTitle, pitchLabel, rateLabel, swingLabel;
     juce::OwnedArray<juce::TextButton> divBtns, feelBtns;
     juce::ComboBox pattern;
-    juce::TextButton randoom { "RANDOOM" }, loadBtn { "LOAD SAMPLE" };
+    juce::TextButton randoom { "RANDOOM" }, loadBtn { "LOAD SAMPLE" }, scrollBtn { "BANK SCROLL" };
+    juce::Label nowPlaying;
+    juce::MidiKeyboardComponent keyboard;
+    juce::TextButton keyTrackBtn { "KEY TRACK" };
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> keyTrackAtt;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> scrollAtt;
     juce::OwnedArray<juce::TextButton> loadLaneBtns;
     int loadTarget = 0;
 

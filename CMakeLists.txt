@@ -16,6 +16,10 @@ juce_add_plugin(ChaosTrigger
     IS_MIDI_EFFECT FALSE
     COPY_PLUGIN_AFTER_BUILD FALSE)
 
+file(GLOB FACTORY_SAMPLES "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Samples/*.wav")
+juce_add_binary_data(ChaosTriggerData SOURCES ${FACTORY_SAMPLES})
+set_target_properties(ChaosTriggerData PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
 target_sources(ChaosTrigger PRIVATE
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp)
@@ -29,6 +33,7 @@ target_compile_definitions(ChaosTrigger PUBLIC
 target_link_libraries(ChaosTrigger PRIVATE
     juce::juce_audio_utils
     juce::juce_dsp
+    ChaosTriggerData
     PUBLIC
     juce::juce_recommended_config_flags
     juce::juce_recommended_lto_flags
@@ -39,5 +44,5 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 juce_add_console_app(ChaosTriggerTest PRODUCT_NAME "ChaosTriggerTest")
 target_sources(ChaosTriggerTest PRIVATE Tests/RenderTest.cpp Source/PluginProcessor.cpp Source/PluginEditor.cpp)
 target_compile_definitions(ChaosTriggerTest PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JucePlugin_Build_Standalone=0)
-target_link_libraries(ChaosTriggerTest PRIVATE juce::juce_audio_utils juce::juce_dsp juce::juce_recommended_config_flags)
+target_link_libraries(ChaosTriggerTest PRIVATE ChaosTriggerData juce::juce_audio_utils juce::juce_dsp juce::juce_recommended_config_flags)
 endif()

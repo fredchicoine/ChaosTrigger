@@ -18,7 +18,13 @@ To publish a release, go to **Actions → Build Chaos Trigger → Run workflow**
 You can also push a `v*` tag. The installers are attached to the release with fixed file names, so the
 download buttons in the README always point to the newest version.
 
+## Demo samples
+`Resources/Samples/*.wav` are compiled into the plugin (`juce_add_binary_data`) and loaded into lanes 1–4 by default.
+A project that uses them saves `factory:N` instead of a file path.
+
 ## Engine notes
+- Pitch (master + lane + key track) never changes timing. Playheads always move at 1×, and a 2-grain
+  (60 ms, Hann) granular shifter reads at the pitch ratio. At ratio 1, the sample is read directly.
 - All four loops run in parallel from note-on. The sequencer only opens each lane's ADSR gate in turn.
 - Lane signal chain: sample → ADSR → Distortion → Bitcrush → Smash → Chorus → Haas → Pan/Vol → lane output bus.
 - Master chain (applied on every enabled output bus): Distortion → Bitcrush → Smash → Ring Mod → Filter → Haas.

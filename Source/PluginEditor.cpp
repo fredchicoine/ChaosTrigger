@@ -160,7 +160,8 @@ static void setupKnob (juce::Slider& s, juce::Colour c, bool textBox = false)
 }
 
 ChaosTriggerEditor::ChaosTriggerEditor (ChaosTriggerProcessor& p)
-    : AudioProcessorEditor (p), proc (p)
+    : AudioProcessorEditor (p), proc (p),
+      keyboard (p.keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard)
 {
     setLookAndFeel (&lnf);
     using SA = juce::AudioProcessorValueTreeState::SliderAttachment;
@@ -220,6 +221,25 @@ ChaosTriggerEditor::ChaosTriggerEditor (ChaosTriggerProcessor& p)
     patAtt = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (proc.apvts, "pattern", pattern);
     randoom.onClick = [this] { setParam ("pattern", 24); };
     addAndMakeVisible (randoom);
+    scrollBtn.setClickingTogglesState (true);
+    scrollBtn.getProperties().set ("accent", (int) juce::Colour (0xffff8a00).getARGB());
+    addAndMakeVisible (scrollBtn);
+    scrollAtt = std::make_unique<BA> (proc.apvts, "scroll", scrollBtn);
+    label (nowPlaying, "", 15, col::red);
+
+    // Play without MIDI: click the keys, or use the computer keyboard (A W S E D F T G Y H U J K = C3..C4,
+    // Z / X = octave down / up). C3 = original pitch.
+    keyboard.setOctaveForMiddleC (3);
+    keyboard.setKeyPressBaseOctave (5);
+    keyboard.setAvailableRange (24, 108);
+    keyboard.setLowestVisibleKey (36);
+    keyboard.setColour (juce::MidiKeyboardComponent::keyDownOverlayColourId, col::red);
+    keyboard.setColour (juce::MidiKeyboardComponent::mouseOverKeyOverlayColourId, col::red.withAlpha (0.3f));
+    keyboard.setWantsKeyboardFocus (true);
+    addAndMakeVisible (keyboard);
+    keyTrackBtn.setClickingTogglesState (true);
+    addAndMakeVisible (keyTrackBtn);
+    keyTrackAtt = std::make_unique<BA> (proc.apvts, "keytrack", keyTrackBtn);
 
     loadBtn.onClick = [this] { loadForLane (loadTarget); };
     addAndMakeVisible (loadBtn);
@@ -289,6 +309,9 @@ ChaosTriggerEditor::ChaosTriggerEditor (ChaosTriggerProcessor& p)
             addAndMakeVisible (*ks[k]);
             L.sAtt.push_back (std::make_unique<SA> (proc.apvts, id (adsr[k]), *ks[k]));
         }
+        setupKnob (L.pitch, juce::Colour (0xff8a8a8a));
+        addAndMakeVisible (L.pitch);
+        L.sAtt.push_back (std::make_unique<SA> (proc.apvts, id ("pitch"), L.pitch));
         setupKnob (L.pan, juce::Colour (0xff3a3a3a));
         setupKnob (L.vol, juce::Colour (0xffd8d8d8));
         addAndMakeVisible (L.pan); addAndMakeVisible (L.vol);
@@ -313,8 +336,8 @@ ChaosTriggerEditor::ChaosTriggerEditor (ChaosTriggerProcessor& p)
     }
 
     setResizable (true, true);
-    setResizeLimits (1100, 760, 2400, 1600);
-    setSize (1400, 920);
+    setResizeLimits (1100, 840, 2400, 1700);
+    setSize (1400, 1010);
     startTimerHz (30);
 }
 
@@ -344,6 +367,9 @@ void ChaosTriggerEditor::loadForLane (int lane)
 
 void ChaosTriggerEditor::timerCallback()
 {
+    // Keep computer-keyboard playing available unless the user is typing somewhere else.
+    if (isShowing() && juce::Component::getCurrentlyFocusedComponent() == nullptr)
+        keyboard.grabKeyboardFocus();
     const bool leg = getParam ("legato") > 0.5f, fr = getParam ("free") > 0.5f;
     retrig.setToggleState (! leg, juce::dontSendNotification);
     legato.setToggleState (leg, juce::dontSendNotification);
@@ -360,6 +386,13 @@ void ChaosTriggerEditor::timerCallback()
     cutoff.setEnabled (fmode > 0); res.setEnabled (fmode > 0);
     ringHz.setEnabled (ringBtn.getToggleState());
     randoom.setToggleState ((int) getParam ("pattern") == 24, juce::dontSendNotification);
+    {
+        const int pp = proc.playingPattern.load();
+        juce::String s = "NOW: ";
+        if (pp >= 24) s << "66 RANDOOM";
+        else { s << (pp + 1) << " - "; for (int k = 0; k < 4; ++k) s << (kPatterns[pp][k] + 1); }
+        nowPlaying.setText (s, juce::dontSendNotification);
+    }
     for (int i = 0; i < kNumLanes; ++i) loadLaneBtns[i]->setToggleState (i == loadTarget, juce::dontSendNotification);
 
     for (int i = 0; i < kNumLanes; ++i)
@@ -402,6 +435,7 @@ void ChaosTriggerEditor::paint (juce::Graphics& g)
         g.setColour (col::text);
         for (int k = 0; k < 4; ++k)
             g.drawText (t[k], ks[k]->getBounds().withY (ks[k]->getBottom()).withHeight (16), juce::Justification::centred);
+        g.drawText ("PITCH " + juce::String ((int) L.pitch.getValue()), L.pitch.getBounds().withY (L.pitch.getBottom()).withHeight (16).expanded (14, 0), juce::Justification::centred);
         g.drawText ("PAN", L.pan.getBounds().withY (L.pan.getBottom()).withHeight (16), juce::Justification::centred);
         g.drawText ("VOL", L.vol.getBounds().withY (L.vol.getBottom()).withHeight (16), juce::Justification::centred);
         const char* ft[] = { "DIST", "HAAS", "CRUSH", "SMASH" };
@@ -431,6 +465,14 @@ void ChaosTriggerEditor::paint (juce::Graphics& g)
 void ChaosTriggerEditor::resized()
 {
     auto area = getLocalBounds().reduced (14);
+    {
+        auto kb = area.removeFromBottom (78);
+        keyTrackBtn.setBounds (kb.removeFromLeft (110).withSizeKeepingCentre (104, 34));
+        kb.removeFromLeft (6);
+        keyboard.setBounds (kb);
+        keyboard.setKeyWidth (juce::jmax (12.0f, kb.getWidth() / 50.0f));
+        area.removeFromBottom (8);
+    }
     const int W = area.getWidth();
 
     // ---- header -------------------------------------------------------------
@@ -477,7 +519,13 @@ void ChaosTriggerEditor::resized()
     right.removeFromTop (10);
     pattern.setBounds (right.removeFromTop (34).reduced (4, 0));
     right.removeFromTop (10);
-    randoom.setBounds (right.removeFromTop (34).withSizeKeepingCentre (juce::jmin (180, right.getWidth()), 34));
+    {
+        auto rr = right.removeFromTop (34);
+        randoom.setBounds (rr.removeFromLeft (rr.getWidth() / 2).reduced (4, 0));
+        scrollBtn.setBounds (rr.reduced (4, 0));
+    }
+    right.removeFromTop (6);
+    nowPlaying.setBounds (right.removeFromTop (22));
 
     // ---- master FX band -----------------------------------------------------
     area.removeFromTop (6);
@@ -522,10 +570,10 @@ void ChaosTriggerEditor::resized()
         for (int k = 0; k < 4; ++k)
             fs[k]->setBounds (juce::Rectangle<int> (fxArea.getX() + k * fw, fxArea.getY(), fw, fk).withSizeKeepingCentre (fk, fk));
         const int knobRowH = row.getHeight() - 24;
-        const int ks = juce::jmin (knobRowH, row.getWidth() / 6);
-        juce::Slider* ks6[] = { &L.a, &L.d, &L.s, &L.r, &L.pan, &L.vol };
-        const int colW = row.getWidth() / 6;
-        for (int k = 0; k < 6; ++k)
+        const int ks = juce::jmin (knobRowH, row.getWidth() / 7);
+        juce::Slider* ks6[] = { &L.a, &L.d, &L.s, &L.r, &L.pitch, &L.pan, &L.vol };
+        const int colW = row.getWidth() / 7;
+        for (int k = 0; k < 7; ++k)
             ks6[k]->setBounds (juce::Rectangle<int> (row.getX() + k * colW + k / 4 * 8, row.getY(), colW, ks + 0).withSizeKeepingCentre (ks, ks));
     }
 }

@@ -6,6 +6,13 @@ int main (int argc, char** argv)
 {
     juce::ScopedJuceInitialiser_GUI init;
     ChaosTriggerProcessor p;
+    for (int l = 0; l < 4; ++l)
+    {
+        auto s = p.getSample (l);
+        std::cout << "factory lane " << l + 1 << ": " << (s ? s->name : juce::String ("MISSING")) << " "
+                  << (s ? s->buffer.getNumSamples() : 0) << "\n";
+        if (! s) return 4;
+    }
     const double sr = 48000; const int bs = 512;
     auto dir = juce::File (argv[1]);
     for (int l = 0; l < 4; ++l)
@@ -70,8 +77,8 @@ int main (int argc, char** argv)
         for (int blk = 0; blk < 400; ++blk)
         {
             juce::MidiBuffer m;
-            if (blk % 50 == 0) m.addEvent (juce::MidiMessage::noteOn (1, 60, (juce::uint8) 100), 0);
-            if (blk % 50 == 40) m.addEvent (juce::MidiMessage::noteOff (1, 60), 0);
+            if (blk % 50 == 0) m.addEvent (juce::MidiMessage::noteOn (1, 48 + (blk / 50) * 3, (juce::uint8) 100), 0);
+            if (blk % 50 == 40) m.addEvent (juce::MidiMessage::noteOff (1, 48 + (blk / 50) * 3), 0);
             for (auto* prm : params)
                 if (auto* wp = dynamic_cast<juce::AudioProcessorParameterWithID*> (prm); wp && wp->paramID != "m_ring" && ! wp->paramID.endsWith ("power"))
                     prm->setValueNotifyingHost (r.nextFloat());
@@ -81,6 +88,30 @@ int main (int argc, char** argv)
         std::cout << "automation sweep nan=" << bad << "\n";
         if (bad || automatable != params.size()) return 3;
         for (auto* prm : params) prm->setValueNotifyingHost (prm->getDefaultValue());
+    }
+    // Pitch-shift check: 440 Hz sine on lane 1 only, play C4 (72) -> expect ~880 Hz.
+    {
+        auto f = dir.getChildFile ("sine440.wav"); f.deleteFile();
+        juce::AudioBuffer<float> b (2, (int) sr * 2);
+        for (int i = 0; i < b.getNumSamples(); ++i) { float v = 0.5f * std::sin (2 * juce::MathConstants<float>::pi * 440.0f * i / (float) sr); b.setSample (0, i, v); b.setSample (1, i, v); }
+        { juce::WavAudioFormat wav; std::unique_ptr<juce::AudioFormatWriter> w (wav.createWriterFor (new juce::FileOutputStream (f), sr, 2, 24, {}, 0));
+          w->writeFromAudioSampleBuffer (b, 0, b.getNumSamples()); }
+        p.loadSample (0, f);
+        for (int l = 1; l < 4; ++l) p.apvts.getParameter (ChaosTriggerProcessor::laneId (l, "power"))->setValueNotifyingHost (0.0f);
+        for (int note : { 60, 72, 55 })
+        {
+            juce::MidiBuffer off; off.addEvent (juce::MidiMessage::allNotesOff (1), 0); p.processBlock (buf, off);
+            int crossings = 0; float prev = 0; int total = 0;
+            for (int blk = 0; blk < 100; ++blk)
+            {
+                juce::MidiBuffer m;
+                if (blk == 0) m.addEvent (juce::MidiMessage::noteOn (1, note, (juce::uint8) 100), 0);
+                p.processBlock (buf, m);
+                if (blk < 10) continue;
+                for (int i = 0; i < bs; ++i) { float v = buf.getSample (0, i); if (prev <= 0 && v > 0) ++crossings; prev = v; ++total; }
+            }
+            std::cout << "note " << note << " -> " << crossings * sr / total << " Hz\n";
+        }
     }
     std::unique_ptr<juce::AudioProcessorEditor> ed (p.createEditor());
     ed->setSize (1400, 920);

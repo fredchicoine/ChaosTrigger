@@ -25,10 +25,11 @@ VST3 · AU · Standalone. For Windows and macOS.
 4. [The panel, control by control](#the-panel)
 5. [Lane effects](#lane-effects)
 6. [Master section](#master-section)
-7. [Multi-output routing (separate lanes to separate tracks)](#multi-output-routing)
-8. [Automation](#automation)
-9. [Tips and recipes](#tips-and-recipes)
-10. [Troubleshooting / FAQ](#troubleshooting--faq)
+7. [Playing without MIDI](#playing-without-midi) · [KEY TRACK](#playing-notes-like-a-sampler-key-track)
+8. [Multi-output routing (separate lanes to separate tracks)](#multi-output-routing)
+9. [Automation](#automation)
+10. [Tips and recipes](#tips-and-recipes)
+11. [Troubleshooting / FAQ](#troubleshooting--faq)
 
 ---
 
@@ -80,11 +81,12 @@ Files are installed to `/Library/Audio/Plug-Ins/VST3`, `/Library/Audio/Plug-Ins/
 ## Quick start
 
 1. Create an **instrument track** in your DAW and insert **Chaos Trigger**.
-2. Click lane **1**'s waveform box and pick a loop. You can also **drag an audio file** from your desktop or DAW straight onto it.
-   Do the same for lanes 2, 3 and 4.
+   It opens with **4 demo loops** already loaded (hi-hats, drum break, two pads), so you can play right away.
+2. To use your own loops, click a lane's waveform box and pick a file. You can also **drag an audio file** onto it.
 3. Make sure **SYNC** and **RETRIG** are lit (they're the defaults).
 4. In **CHAOS DIVIDER**, pick **16** (1/16 notes) and **STRAIGHT**.
-5. Press play in your DAW and **hold any key** on your MIDI keyboard.
+5. Press play in your DAW and **hold a key**: on your MIDI keyboard, by clicking the **on-screen keyboard**,
+   or with your **computer keyboard** (see [Playing without MIDI](#playing-without-midi)).
    You'll hear 1/16 slices jumping lane 1 → 2 → 3 → 4 → 1 …
 6. In **CHAOS PICKER**, try other orders, or hit **RANDOOM** to let the dice decide.
 7. Shape each lane with its **A D S R** knobs, then add some **DIST / CRUSH / SMASH**.
@@ -97,7 +99,7 @@ Files are installed to `/Library/Audio/Plug-Ins/VST3`, `/Library/Audio/Plug-Ins/
 
 | Control | What it does |
 |---|---|
-| **PITCH** | Master pitch from **-12 to +12 semitones**. It changes the pitch of all four lanes (and their speed, like a turntable). |
+| **PITCH** | Master pitch from **-12 to +12 semitones** for all four lanes. Like every pitch control in Chaos Trigger, it **doesn't change the length or tempo** of the loops. |
 | **RETRIG** | Each new MIDI note **restarts all four loops from the beginning** and restarts the sequence. Tight and predictable. |
 | **LEGATO** | A new MIDI note only **restarts the step sequence**. The loops keep running where they were, so playing new notes doesn't reset the groove. |
 | **SYNC** | Step speed follows your **DAW tempo**. It only syncs the step speed. Your loops are played as they are, not time-stretched. |
@@ -144,6 +146,10 @@ Choose one of **24 patterns**, every possible order of the four lanes:
 
 …or **66 – RANDOOM**. Each step picks a random lane, with no fixed logic. The same lane can come up twice in a row.
 
+**BANK SCROLL** (next to RANDOOM): when it's lit, Chaos Trigger picks a **new random pattern (1–24) at the start of every cycle**
+by itself, without you changing the pattern. Each cycle still plays every lane exactly once, but in a new order each time.
+The **NOW:** line under the buttons shows the pattern that's actually playing.
+
 **Using 2 or 3 lanes:** turn a lane's **POWER** off, or leave it empty, and the sequencer **skips it**.
 For example, pattern 1 (1234) with lane 3 off plays 1 → 2 → 4 → 1 → 2 → 4…
 
@@ -159,6 +165,7 @@ Each lane row has, from left to right:
 | **REVERSE** | Plays the loop backwards. The waveform flips to show it. |
 | **Waveform** | Shows the loop, with a red line where it's currently playing. The frame turns red when the lane is active. |
 | **A D S R** | The lane's envelope, which opens every time the sequencer hits that lane. **A**ttack = fade-in, **D**ecay = drop to the Sustain level, **S**ustain = level while the step lasts, **R**elease = fade-out after the step ends (a long release lets lanes overlap). |
+| **PITCH** | The lane's own pitch, from **-12 to +12 semitones**. It adds to the master PITCH and the played note, and doesn't change the timing. |
 | **PAN** | Position in the stereo field. |
 | **VOL** | Lane volume (-60 dB to +6 dB). Use it to balance lanes, especially after adding effects. |
 | **DIST · HAAS · CRUSH · SMASH** | The lane's effects (see below). |
@@ -172,6 +179,26 @@ Each lane row has, from left to right:
 - **Washy overlaps:** long R so each slice rings into the next one
 
 ---
+
+## Playing without MIDI
+
+The **keyboard at the bottom** of the plugin plays Chaos Trigger without a MIDI controller:
+
+- **Mouse:** click and hold a key.
+- **Computer keyboard:** **A W S E D F T G Y H U J K** play **C3 → C4** (white keys on the middle row, black keys on the row above).
+  **Z / X** move one octave down / up. Click the plugin's empty background once if your keys don't respond.
+
+## Playing notes like a sampler (KEY TRACK)
+
+With **KEY TRACK** on (default), the note you play sets the pitch, like a sampler:
+**C3 = original pitch**, C4 = one octave up, C2 = one octave down, and so on.
+
+Unlike a classic sampler, **the loops keep their length and tempo**. Chaos Trigger uses a granular pitch shifter, so lanes stay in sync
+whatever note you play. The final pitch of a lane is **master PITCH + lane PITCH + (note − C3)**.
+
+Turn **KEY TRACK** off if you want every key to play at the original pitch.
+
+> Pitch shifting adds a slight grainy texture, which grows with the size of the shift. At the original pitch, the loop plays perfectly clean.
 
 ## Lane effects
 
@@ -234,11 +261,11 @@ The master section is applied to each output.
 
 ## Automation
 
-**Every knob, button and selector can be automated** (73 parameters). Automation lanes use the same names as the controls on the panel:
+**Every knob, button and selector can be automated** (79 parameters). Automation lanes use the same names as the controls on the panel:
 
-- `PITCH`, `RETRIG / LEGATO`, `SYNC / FREE`, `FREE RATE (Hz)`, `CHAOS DIVIDER`, `CHAOS DIVIDER FEEL`, `SWING AMOUNT`, `CHAOS PICKER`
+- `PITCH`, `RETRIG / LEGATO`, `SYNC / FREE`, `FREE RATE (Hz)`, `CHAOS DIVIDER`, `CHAOS DIVIDER FEEL`, `SWING AMOUNT`, `CHAOS PICKER`, `BANK SCROLL`, `KEY TRACK`
 - `MASTER DIST`, `MASTER HAAS (ms)`, `MASTER CRUSH (bits)`, `MASTER SMASH`, `MASTER RING MOD`, `MASTER RING HZ`, `MASTER FILTER`, `MASTER CUTOFF`, `MASTER RES`
-- For each lane: `LANE 1 A (Attack)`, `LANE 1 D (Decay)`, `LANE 1 S (Sustain)`, `LANE 1 R (Release)`, `LANE 1 PAN`, `LANE 1 VOL (dB)`, `LANE 1 POWER`, `LANE 1 MONO`, `LANE 1 REVERSE`, `LANE 1 DIST`, `LANE 1 HAAS (ms)`, `LANE 1 CRUSH (bits)`, `LANE 1 SMASH`, `LANE 1 CHORUS`, and the same for lanes 2–4
+- For each lane: `LANE 1 A (Attack)`, `LANE 1 D (Decay)`, `LANE 1 S (Sustain)`, `LANE 1 R (Release)`, `LANE 1 PITCH`, `LANE 1 PAN`, `LANE 1 VOL (dB)`, `LANE 1 POWER`, `LANE 1 MONO`, `LANE 1 REVERSE`, `LANE 1 DIST`, `LANE 1 HAAS (ms)`, `LANE 1 CRUSH (bits)`, `LANE 1 SMASH`, `LANE 1 CHORUS`, and the same for lanes 2–4
 
 **In Reaper:** click the track's **envelope / automation** button (or press the **Param** button in the plugin window → *Show track envelope*).
 You can also just touch a control in the plugin and use *"Last touched parameter"*.
@@ -288,7 +315,10 @@ sudo xattr -cr "/Library/Audio/Plug-Ins/VST3/Chaos Trigger.vst3" "/Library/Audio
 Chaos Trigger remembers where each file is. If you moved or renamed the files, load them again.
 
 **Does the MIDI note change the pitch?**
-No. Any key triggers the sequencer, and pitch is set with the **PITCH** knob, which you can automate.
+Yes, when **KEY TRACK** is on: C3 = original pitch. The loops' length and tempo never change. Turn KEY TRACK off to make every key play at the original pitch.
+
+**Can I remove the demo loops?**
+Just load your own files over them. Your choice is saved with your project.
 
 ---
 

@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "BinaryData.h"
 
 const int kPatterns[24][4] = {
     {0,1,2,3},{0,1,3,2},{0,2,1,3},{0,2,3,1},{0,3,1,2},{0,3,2,1},
@@ -20,6 +21,7 @@ ChaosTriggerProcessor::ChaosTriggerProcessor()
       apvts (*this, nullptr, "STATE", createLayout())
 {
     formatManager.registerBasicFormats();
+    for (int i = 0; i < kNumLanes; ++i) loadFactorySample (i);
     for (auto& p : playPos) p = 0.0f;
     for (auto& e : envLevel) e = 0.0f;
 }
@@ -64,6 +66,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout ChaosTriggerProcessor::creat
     }
     pats.add ("66 - RANDOOM");
     l.add (std::make_unique<AudioParameterChoice>(ParameterID { "pattern", 1 }, "CHAOS PICKER", pats, 0));
+    l.add (std::make_unique<AudioParameterBool> (ParameterID { "keytrack", 1 }, "KEY TRACK", true,
+        AudioParameterBoolAttributes().withStringFromValueFunction ([] (bool v, int) { return String (v ? "ON" : "OFF"); })));
+    l.add (std::make_unique<AudioParameterBool> (ParameterID { "scroll", 1 }, "BANK SCROLL", false,
+        AudioParameterBoolAttributes().withStringFromValueFunction ([] (bool v, int) { return String (v ? "ON" : "OFF"); })));
 
     for (int i = 0; i < kNumLanes; ++i)
     {
@@ -73,6 +79,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout ChaosTriggerProcessor::creat
         l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "d"), 1 }, n + "D (Decay)",   t, 0.1f));
         l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "s"), 1 }, n + "S (Sustain)", NormalisableRange<float> (0, 1), 1.0f));
         l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "r"), 1 }, n + "R (Release)", t, 0.02f));
+        l.add (std::make_unique<AudioParameterInt>  (ParameterID { laneId (i, "pitch"), 1 }, n + "PITCH", -12, 12, 0));
         l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "pan"), 1 }, n + "PAN", NormalisableRange<float> (-1, 1), 0.0f));
         l.add (std::make_unique<AudioParameterFloat>(ParameterID { laneId (i, "vol"), 1 }, n + "VOL (dB)",
                                                      NormalisableRange<float> (-60.0f, 6.0f, 0.1f, 2.0f), 0.0f));
@@ -127,7 +134,28 @@ FxSettings ChaosTriggerProcessor::readFx (const juce::String& pre, bool master) 
 
 bool ChaosTriggerProcessor::loadSample (int lane, const juce::File& file)
 {
-    std::unique_ptr<juce::AudioFormatReader> reader (formatManager.createReaderFor (file));
+    return loadFromReader (lane, std::unique_ptr<juce::AudioFormatReader> (formatManager.createReaderFor (file)),
+                           file.getFileName(), file.getFullPathName());
+}
+
+// Built-in demo loops, compiled into the plugin (Resources/Samples).
+static const struct { const char* data; int size; const char* name; } kFactory[kNumLanes] = {
+    { BinaryData::Lane1_AU_HDT2_150_hihat_sparrow_wav,      BinaryData::Lane1_AU_HDT2_150_hihat_sparrow_wavSize,      "AU_HDT2_150_hihat_sparrow.wav" },
+    { BinaryData::Lane2_DS_HT_150_drum_break_great_wav,     BinaryData::Lane2_DS_HT_150_drum_break_great_wavSize,     "DS_HT_150_drum_break_great.wav" },
+    { BinaryData::Lane3_FL_BJ_174_Synth_Pad_Sonic_Gm_wav,   BinaryData::Lane3_FL_BJ_174_Synth_Pad_Sonic_Gm_wavSize,   "FL_BJ_174_Synth_Pad_Sonic_Gm.wav" },
+    { BinaryData::Lane4_ZEN_STR_120_pad_synth_silvia_Gm_wav,BinaryData::Lane4_ZEN_STR_120_pad_synth_silvia_Gm_wavSize,"ZEN_STR_120_pad_synth_silvia_Gm.wav" } };
+
+bool ChaosTriggerProcessor::loadFactorySample (int lane)
+{
+    const auto& f = kFactory[lane];
+    auto stream = std::make_unique<juce::MemoryInputStream> (f.data, (size_t) f.size, false);
+    return loadFromReader (lane, std::unique_ptr<juce::AudioFormatReader> (formatManager.createReaderFor (std::move (stream))),
+                           f.name, "factory:" + juce::String (lane));
+}
+
+bool ChaosTriggerProcessor::loadFromReader (int lane, std::unique_ptr<juce::AudioFormatReader> reader,
+                                            const juce::String& name, const juce::String& path)
+{
     if (reader == nullptr || reader->lengthInSamples <= 0)
         return false;
 
@@ -138,8 +166,8 @@ bool ChaosTriggerProcessor::loadSample (int lane, const juce::File& file)
     if (reader->numChannels == 1)
         s->buffer.copyFrom (1, 0, s->buffer, 0, 0, len);
     s->sampleRate = reader->sampleRate;
-    s->name = file.getFileName();
-    s->path = file.getFullPathName();
+    s->name = name;
+    s->path = path;
 
     std::shared_ptr<const LaneSample> c = s;
     std::atomic_store (&samples[(size_t) lane], c);
@@ -188,7 +216,14 @@ void ChaosTriggerProcessor::advanceStep()
             && std::atomic_load (&samples[(size_t) lane]) != nullptr;
     };
 
-    const int pat = (int) apvts.getRawParameterValue ("pattern")->load();
+    const int userPat = (int) apvts.getRawParameterValue ("pattern")->load();
+    const bool scroll = apvts.getRawParameterValue ("scroll")->load() > 0.5f;
+    // BANK SCROLL: at the start of every cycle pick a new random pattern (1-24),
+    // without touching the CHAOS PICKER setting.
+    if (! scroll || userPat >= 24) scrollPattern = userPat;
+    else if (stepIndex == 0) scrollPattern = rng.nextInt (24);
+    const int pat = scrollPattern;
+    playingPattern = pat;
     int next = -1;
 
     if (pat >= 24)
@@ -263,6 +298,10 @@ void ChaosTriggerProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
         gainR[(size_t) i].setTargetValue (g * std::sin (ang) * juce::MathConstants<float>::sqrt2);
     }
 
+    std::array<double, kNumLanes> lanePitch {};
+    for (int i = 0; i < kNumLanes; ++i)
+        lanePitch[(size_t) i] = std::pow (2.0, apvts.getRawParameterValue (laneId (i, "pitch"))->load() / 12.0);
+    const bool keyTrack = apvts.getRawParameterValue ("keytrack")->load() > 0.5f;
     const bool legato = apvts.getRawParameterValue ("legato")->load() > 0.5f;
     const double pitchRatio = std::pow (2.0, apvts.getRawParameterValue ("pitch")->load() / 12.0);
 
@@ -278,6 +317,7 @@ void ChaosTriggerProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
         outR[(size_t) i] = b.getNumChannels() > 1 ? b.getWritePointer (1) : outL[(size_t) i];
     }
 
+    keyboardState.processNextMidiBuffer (midi, 0, numSamples, true);   // on-screen / computer keyboard
     auto midiIt = midi.cbegin();
     for (int n = 0; n < numSamples; ++n)
     {
@@ -286,6 +326,7 @@ void ChaosTriggerProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
             const auto m = (*midiIt).getMessage();
             if (m.isNoteOn())
             {
+                currentNote = m.getNoteNumber();
                 const bool first = heldNotes == 0;
                 ++heldNotes;
                 if (first || ! legato)
@@ -313,6 +354,7 @@ void ChaosTriggerProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
             }
         }
 
+        const double noteRatio = keyTrack ? std::pow (2.0, (currentNote - 60) / 12.0) : 1.0;
         if (! running) continue;
 
         if (heldNotes > 0)
@@ -330,29 +372,60 @@ void ChaosTriggerProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
             if (s == nullptr) continue;
 
             const int len = s->buffer.getNumSamples();
-            const double inc = pitchRatio * s->sampleRate / sr;
+            // Playhead always moves at original speed: pitch never changes the loop's timing.
+            const double inc = s->sampleRate / sr;
+            const double ratio = pitchRatio * lanePitch[(size_t) i] * noteRatio;
             double& pos = lanePos[(size_t) i];
 
             if (e.isActive())
             {
                 anyActive = true;
                 const float a = e.getNextSample();
-                double rp = rev[(size_t) i] ? (len - 1 - pos) : pos;
-                rp = juce::jlimit (0.0, (double) (len - 1), rp);
-                const int i0 = (int) rp;
-                const int i1 = juce::jmin (len - 1, i0 + 1);
-                const float fr = (float) (rp - i0);
                 const float* L = s->buffer.getReadPointer (0);
                 const float* R = s->buffer.getReadPointer (1);
-                float l = L[i0] + fr * (L[i1] - L[i0]);
-                float r = R[i0] + fr * (R[i1] - R[i0]);
+                const bool rv = rev[(size_t) i];
+                auto readAt = [&] (double p, float& outL, float& outR)
+                {
+                    p = std::fmod (p, (double) len); if (p < 0) p += len;
+                    double rp = rv ? (len - 1 - p) : p;
+                    rp = juce::jlimit (0.0, (double) (len - 1), rp);
+                    const int i0 = (int) rp;
+                    const int i1 = (i0 + 1) % len;
+                    const float fr = (float) (rp - i0);
+                    outL = L[i0] + fr * (L[i1] - L[i0]);
+                    outR = R[i0] + fr * (R[i1] - R[i0]);
+                };
+                float l = 0, r = 0;
+                auto& gs = grains[(size_t) i];
+                if (std::abs (ratio - 1.0) < 1.0e-4)
+                {
+                    readAt (pos, l, r);
+                }
+                else
+                {
+                    // Granular pitch shift: two overlapping Hann grains read at 'ratio' speed,
+                    // each re-anchored to the playhead when it restarts.
+                    const double G = grainLenSec * s->sampleRate;
+                    for (int k = 0; k < 2; ++k)
+                    {
+                        double ph = gs.phase + 0.5 * k; if (ph >= 1.0) ph -= 1.0;
+                        if (ph < gs.lastPh[k]) gs.anchor[k] = pos;      // grain restarts at the playhead
+                        gs.lastPh[k] = ph;
+                        float gl, gr;
+                        readAt (gs.anchor[k] + ph * G * ratio, gl, gr);  // ...and reads at the shifted speed
+                        const float w = (float) (std::sin (juce::MathConstants<double>::pi * ph));
+                        l += gl * w * w; r += gr * w * w;
+                    }
+                }
                 if (mono[(size_t) i]) l = r = 0.5f * (l + r);
                 laneBuf.setSample (i * 2, n, l * a);
                 laneBuf.setSample (i * 2 + 1, n, r * a);
             }
             // All lanes run in parallel so every step lands at the matching spot in its loop.
             pos += inc;
-            if (pos >= len) pos = std::fmod (pos, (double) len);
+            grains[(size_t) i].phase += inc / (grainLenSec * s->sampleRate);
+            if (grains[(size_t) i].phase >= 1.0) grains[(size_t) i].phase -= 1.0;
+            if (pos >= len) { pos = std::fmod (pos, (double) len); for (auto& a : grains[(size_t) i].anchor) a -= len; }
         }
         if (! anyActive) running = false;
     }
@@ -411,8 +484,11 @@ void ChaosTriggerProcessor::setStateInformation (const void* data, int size)
         apvts.replaceState (tree);
         for (int i = 0; i < kNumLanes; ++i)
         {
-            juce::File f (tree.getProperty ("sample" + juce::String (i)).toString());
-            if (f.existsAsFile()) loadSample (i, f);
+            const auto path = tree.getProperty ("sample" + juce::String (i)).toString();
+            if (path.startsWith ("factory:"))
+                loadFactorySample (juce::jlimit (0, kNumLanes - 1, path.substring (8).getIntValue()));
+            else if (juce::File (path).existsAsFile())
+                loadSample (i, juce::File (path));
         }
     }
 }

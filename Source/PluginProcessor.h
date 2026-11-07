@@ -51,6 +51,9 @@ public:
 
     // Message thread only.
     bool loadSample (int lane, const juce::File& file);
+    bool loadFactorySample (int lane);
+    std::atomic<int> playingPattern { 0 };
+    juce::MidiKeyboardState keyboardState;   // on-screen keyboard + computer keys   // pattern actually playing (differs from CHAOS PICKER in BANK SCROLL)
     std::shared_ptr<const LaneSample> getSample (int lane) const { return std::atomic_load (&samples[(size_t) lane]); }
 
     juce::AudioProcessorValueTreeState apvts;
@@ -69,6 +72,12 @@ private:
     double currentStepLengthSamples (int stepIndex);
     void advanceStep();
     void startNote (bool retrigger);
+    bool loadFromReader (int lane, std::unique_ptr<juce::AudioFormatReader>, const juce::String& name, const juce::String& path);
+    int scrollPattern = 0;
+    int currentNote = 60;                    // C3 = original pitch
+    static constexpr double grainLenSec = 0.06;
+    struct GrainState { double phase = 0; double anchor[2] {}; double lastPh[2] { 1, 1 }; };
+    std::array<GrainState, kNumLanes> grains {};
 
     juce::AudioFormatManager formatManager;
     std::array<std::shared_ptr<const LaneSample>, kNumLanes> samples;

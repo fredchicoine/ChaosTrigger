@@ -39,5 +39,5 @@ cat > "$WORK/distribution.xml" <<XML
 XML
 
 productbuild --distribution "$WORK/distribution.xml" --package-path "$WORK/pkgs" \
-  "$OUT/ChaosTrigger-$VER-Mac.pkg"
-echo "Built $OUT/ChaosTrigger-$VER-Mac.pkg"
+  "$OUT/ChaosTrigger-Mac.pkg"
+echo "Built $OUT/ChaosTrigger-Mac.pkg"

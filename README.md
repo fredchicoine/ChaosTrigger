@@ -1,53 +1,297 @@
-# Chaos Trigger by iNi
+<div align="center">
 
-A 4-lane loop-slicing step sequencer instrument (VST3 / AU / Standalone), built with JUCE 8.
+# CHAOS TRIGGER
+### by iNi
 
-## Build
+**A 4-lane loop step sequencer for chaotic beat mangling.**
+VST3 · AU · Standalone. For Windows and macOS.
 
-You need CMake 3.22+ and a C++17 compiler (Xcode on macOS, Visual Studio 2022 on Windows).
+<br>
 
-```
-git clone --depth 1 -b 8.0.4 https://github.com/juce-framework/JUCE JUCE
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
-```
+<a href="https://github.com/fredchicoine/ChaosTrigger/releases/latest/download/ChaosTrigger-Windows-Setup.exe"><img src="https://img.shields.io/badge/DOWNLOAD-WINDOWS-e0202a?style=for-the-badge&logo=windows&logoColor=white" height="56" alt="Download for Windows"></a>
+&nbsp;&nbsp;
+<a href="https://github.com/fredchicoine/ChaosTrigger/releases/latest/download/ChaosTrigger-Mac.pkg"><img src="https://img.shields.io/badge/DOWNLOAD-MAC-e0202a?style=for-the-badge&logo=apple&logoColor=white" height="56" alt="Download for Mac"></a>
 
-The plugins end up in `build/ChaosTrigger_artefacts/Release/` (VST3, AU on macOS, Standalone).
-The AU target only builds on macOS. Copy the `.vst3` folder into your system VST3 folder.
+<sub>Windows 10/11 (64-bit) · macOS 11 or later, Apple Silicon and Intel · <a href="https://github.com/fredchicoine/ChaosTrigger/releases">all versions</a></sub>
 
-## How the engine works
+</div>
 
-- **Lanes play in parallel.** All 4 loops run from the moment you press a key. The sequencer only
-  opens each lane's ADSR gate in turn, so every step plays the matching slice of that loop in time.
-- **RETRIG**: each new note restarts all loops and the sequence. **LEGATO**: a new note restarts
-  only the sequence, and the loops keep running.
-- **SYNC**: the step length comes from the DAW tempo and the Chaos Divider (1/128 to 1/1).
-  **FREE**: the step length comes from the Free Rate knob (Hz).
-- **Feel**: Straight; Triplet (×2/3); Dotted (×1.5); Swing (long-short pairs, amount knob).
-- **Chaos Picker**: patterns 1–24 (every order of the 4 lanes) and 66 RANDOOM.
-  Lanes that are powered off or have no sample are skipped.
-- **Lane FX** (in this order): Distortion → Bitcrush (24 to 1 bit) → Smash (-6 dB 2:1 to -40 dB 20:1) →
-  Juno chorus (I = 0.4 Hz triangle, II = 0.6 Hz triangle, I+II = 8 Hz shallow sine) → Haas (0–100 ms) → Pan/Vol.
-- **Master FX**: the same set without chorus, plus Ring Mod (on/off + frequency) and a filter with
-  LP 24 dB (Moog ladder), BP 6 dB and HP 12 dB, with cutoff and resonance.
-- **Outputs**: lane 1 goes to outputs 1/2, lane 2 to 3/4, and so on. Enable the extra outputs in your DAW.
-  If a lane's output isn't enabled, that lane is mixed into the main 1/2.
-  The master FX run on each enabled output.
-- Sample paths are saved with your project and reloaded when you open it.
+---
 
-## Loading samples
-Pick a lane number (1–4) next to LOAD SAMPLE and press LOAD SAMPLE. You can also click a waveform, or drag a file onto it.
+## Contents
+1. [What is Chaos Trigger?](#what-is-chaos-trigger)
+2. [Installing](#installing)
+3. [Quick start: your first chaos in 60 seconds](#quick-start)
+4. [The panel, control by control](#the-panel)
+5. [Lane effects](#lane-effects)
+6. [Master section](#master-section)
+7. [Multi-output routing (separate lanes to separate tracks)](#multi-output-routing)
+8. [Automation](#automation)
+9. [Tips and recipes](#tips-and-recipes)
+10. [Troubleshooting / FAQ](#troubleshooting--faq)
+
+---
+
+## What is Chaos Trigger?
+
+Chaos Trigger works like a step-sequencing oscillator in the style of the Korg Wavestation. Instead of
+stepping through a wavetable, it steps through **audio loops**.
+
+You load up to **4 loops**, one per **lane**. When you hold a MIDI key, Chaos Trigger jumps between the lanes at
+the speed you choose (1/16, 1/8, triplets…), in the order you choose. Each time it lands on a lane, that lane's
+**ADSR envelope** opens like a gate, so you hear a slice of that loop. Then it moves on to the next lane.
+
+All four loops keep running **in time with each other** in the background. Every slice you hear is the part of
+that loop that would be playing at that moment. Load four loops at the same tempo and you get an instant
+re-arranged beat. Load loops at different tempos and you get **666% chaos**.
+
+> **Tip:** For a steady groove, prepare your loops at the same tempo and length before loading them.
+
+---
 
 ## Installing
-Download the installer for your system from the Releases page (or from the Actions tab for test builds):
-- **Windows:** run `ChaosTrigger-x.y.z-Windows-Setup.exe`. It installs the VST3 into
-  `C:\Program Files\Common Files\VST3` and, if you choose, the standalone app. Windows SmartScreen may
-  warn because the installer isn't code-signed: click **More info → Run anyway**.
-- **Mac:** open `ChaosTrigger-x.y.z-Mac.pkg` and pick VST3, AU and/or Standalone. Because the installer isn't
-  signed by Apple yet, macOS may refuse to open it the first time: right-click the .pkg, choose **Open**,
-  then **Open** again (or System Settings → Privacy & Security → **Open Anyway**).
-- Rescan plugins in your DAW afterwards.
 
-## Publishing a release
-Create a version tag and push it, for example `git tag v0.1.0 && git push origin v0.1.0`. GitHub builds both installers
-and attaches them to a new release on the Releases page.
+### Windows
+1. Click **DOWNLOAD WINDOWS** above.
+2. Run `ChaosTrigger-Windows-Setup.exe`.
+   *If Windows SmartScreen says "Windows protected your PC", click **More info → Run anyway**.
+   The installer isn't code-signed yet, and that's why the warning appears.*
+3. Choose whether you also want the **Standalone** app, then click **Install**.
+4. Open your DAW and **rescan plugins**.
+
+The VST3 is installed to `C:\Program Files\Common Files\VST3\Chaos Trigger.vst3`.
+To uninstall, go to Windows **Settings → Apps → Chaos Trigger → Uninstall**.
+
+### Mac
+1. Click **DOWNLOAD MAC** above.
+2. Open `ChaosTrigger-Mac.pkg`.
+   *If macOS says it "can't be opened because it is from an unidentified developer", **right-click** the file → **Open** → **Open**.
+   You can also go to **System Settings → Privacy & Security** and click **Open Anyway**.*
+3. Click **Customize** to pick what you want:
+   - **VST3** for Reaper, Ableton Live, Bitwig, Cubase, Studio One, FL Studio…
+   - **AU** for Logic Pro and GarageBand
+   - **Standalone app** to use it without a DAW
+4. Open your DAW and **rescan plugins**.
+
+Files are installed to `/Library/Audio/Plug-Ins/VST3`, `/Library/Audio/Plug-Ins/Components` and `/Applications`.
+
+---
+
+## Quick start
+
+1. Create an **instrument track** in your DAW and insert **Chaos Trigger**.
+2. Click lane **1**'s waveform box and pick a loop. You can also **drag an audio file** from your desktop or DAW straight onto it.
+   Do the same for lanes 2, 3 and 4.
+3. Make sure **SYNC** and **RETRIG** are lit (they're the defaults).
+4. In **CHAOS DIVIDER**, pick **16** (1/16 notes) and **STRAIGHT**.
+5. Press play in your DAW and **hold any key** on your MIDI keyboard.
+   You'll hear 1/16 slices jumping lane 1 → 2 → 3 → 4 → 1 …
+6. In **CHAOS PICKER**, try other orders, or hit **RANDOOM** to let the dice decide.
+7. Shape each lane with its **A D S R** knobs, then add some **DIST / CRUSH / SMASH**.
+
+---
+
+## The panel
+
+### Top-left: Play modes
+
+| Control | What it does |
+|---|---|
+| **PITCH** | Master pitch from **-12 to +12 semitones**. It changes the pitch of all four lanes (and their speed, like a turntable). |
+| **RETRIG** | Each new MIDI note **restarts all four loops from the beginning** and restarts the sequence. Tight and predictable. |
+| **LEGATO** | A new MIDI note only **restarts the step sequence**. The loops keep running where they were, so playing new notes doesn't reset the groove. |
+| **SYNC** | Step speed follows your **DAW tempo**. It only syncs the step speed. Your loops are played as they are, not time-stretched. |
+| **FREE** | Free-run: step speed is set by the **FREE RATE** knob in Hz (steps per second), regardless of the DAW tempo. |
+| **FREE RATE** | Steps per second in FREE mode (0.5 – 40 Hz). It's greyed out in SYNC mode. |
+
+RETRIG/LEGATO and SYNC/FREE are pairs: one of each is always lit.
+
+### Load section
+
+| Control | What it does |
+|---|---|
+| **1 2 3 4** | Choose which lane the **LOAD SAMPLE** button loads into. |
+| **LOAD SAMPLE** | Opens a file browser and loads the file into the selected lane. |
+
+You can also **click any waveform** or **drag & drop a file** onto it. Supported formats: WAV, AIFF, FLAC, OGG, MP3.
+Chaos Trigger remembers your samples when you save your project. If you move or delete a sample file, reload it.
+
+### Chaos Divider: how fast it steps
+
+**128 · 64 · 32 · 16 · 8 · 4 · 2 · 1** set the step length (1/128 note … whole note). It's only active in SYNC mode.
+
+Then choose the **feel**:
+
+| Feel | Effect |
+|---|---|
+| **STRAIGHT** | Normal, even steps. |
+| **TRIPLET** | Steps are 2/3 as long (three steps in the space of two). |
+| **DOTTED** | Steps are 1.5× as long. |
+| **SWING** | Steps alternate long-short. The **SWING** knob sets how much (0 = none, max = heavy shuffle). |
+
+### Chaos Picker: in which order the lanes play
+
+Choose one of **24 patterns**, every possible order of the four lanes:
+
+| # | Order | # | Order | # | Order | # | Order |
+|---|---|---|---|---|---|---|---|
+| 1 | 1234 | 7 | 2134 | 13 | 3124 | 19 | 4123 |
+| 2 | 1243 | 8 | 2143 | 14 | 3142 | 20 | 4132 |
+| 3 | 1324 | 9 | 2314 | 15 | 3214 | 21 | 4213 |
+| 4 | 1342 | 10 | 2341 | 16 | 3241 | 22 | 4231 |
+| 5 | 1423 | 11 | 2413 | 17 | 3412 | 23 | 4312 |
+| 6 | 1432 | 12 | 2431 | 18 | 3421 | 24 | 4321 |
+
+…or **66 – RANDOOM**. Each step picks a random lane, with no fixed logic. The same lane can come up twice in a row.
+
+**Using 2 or 3 lanes:** turn a lane's **POWER** off, or leave it empty, and the sequencer **skips it**.
+For example, pattern 1 (1234) with lane 3 off plays 1 → 2 → 4 → 1 → 2 → 4…
+
+### The four lanes
+
+Each lane row has, from left to right:
+
+| Control | What it does |
+|---|---|
+| **Lane number (1–4)** | Lights up when the sequencer is on that lane. Click it to make it the LOAD SAMPLE target. |
+| **Sample name** | The loaded file's name. Long names shrink to fit. |
+| **MONO** | Sums the lane to mono. |
+| **REVERSE** | Plays the loop backwards. The waveform flips to show it. |
+| **Waveform** | Shows the loop, with a red line where it's currently playing. The frame turns red when the lane is active. |
+| **A D S R** | The lane's envelope, which opens every time the sequencer hits that lane. **A**ttack = fade-in, **D**ecay = drop to the Sustain level, **S**ustain = level while the step lasts, **R**elease = fade-out after the step ends (a long release lets lanes overlap). |
+| **PAN** | Position in the stereo field. |
+| **VOL** | Lane volume (-60 dB to +6 dB). Use it to balance lanes, especially after adding effects. |
+| **DIST · HAAS · CRUSH · SMASH** | The lane's effects (see below). |
+| **CHORUS** | Click to cycle **OFF → I → II → I+II**. |
+| **POWER** | Turns the lane on or off. Lanes that are off go silent and are skipped by the sequencer. |
+
+**Envelope cheat-sheet**
+- **Choppy gate:** A = 0, D = 0, S = max, R = 0
+- **Soft slices:** A ≈ 10 ms, S = max, R ≈ 50 ms
+- **Plucky stabs:** A = 0, D short, S = 0, R short
+- **Washy overlaps:** long R so each slice rings into the next one
+
+---
+
+## Lane effects
+
+Each lane has its own effects, in this order:
+**Distortion → Bitcrush → Smash → Chorus → Haas → Pan/Vol**
+
+| Effect | What it does |
+|---|---|
+| **DIST** | Warm, tube-like saturation. A little adds grit, a lot gives full fuzz. |
+| **CRUSH** | Bit depth from **24 bit** (clean, at the right end) down to **1 bit** (destroyed). Turn it left to crush. |
+| **SMASH** | A compressor that grabs everything. It goes from **-6 dB at 2:1** (gentle glue) up to **-40 dB at 20:1** (NUKE!). Make-up gain is automatic. |
+| **CHORUS** | Juno-60-style chorus. **I** = slow, wide sweep (0.4 Hz). **II** = slightly faster, wide sweep (0.6 Hz). **I+II** = fast, shallow vibrato shimmer (8 Hz). |
+| **HAAS** | Delays the right channel by **0 – 100 ms**. Small values (5–30 ms) make things wide, large values give a slap-back echo. Try it on a mono lane. |
+
+---
+
+## Master section
+
+The **MASTER** strip processes the final sound. Its chain is
+**Distortion → Bitcrush → Smash → Ring Mod → Filter → Haas**.
+
+| Control | What it does |
+|---|---|
+| **DIST / HAAS / CRUSH / SMASH** | Same as the lane effects, applied to the whole mix. |
+| **RING MOD** | On/off. Multiplies the sound with a sine wave for metallic, bell-like, robotic tones. |
+| **RING HZ** | Ring mod frequency (20 Hz – 4 kHz). Low = tremolo/wobble, high = clangy metal. |
+| **OFF / LP / BP / HP** | Filter type. **LP** = 24 dB Moog-style ladder low-pass. **BP** = 6 dB band-pass. **HP** = 12 dB high-pass. |
+| **CUTOFF** | Filter frequency. |
+| **RES** | Resonance. The ladder filter gets squelchy near the top. |
+
+---
+
+## Multi-output routing
+
+Each lane has its **own stereo output**, so you can process lanes on separate mixer tracks with your own plugins:
+
+| Lane | Output |
+|---|---|
+| Lane 1 | 1/2 (main) |
+| Lane 2 | 3/4 |
+| Lane 3 | 5/6 |
+| Lane 4 | 7/8 |
+
+If your DAW only uses the main stereo output, all lanes are mixed together on 1/2, and you don't need to set anything up.
+The master section is applied to each output.
+
+**Reaper**
+1. Click the plugin's **routing button** ("2 in 8 out" at the top right of the plugin window).
+2. Or, on the track, open **Route** → **Audio hardware/track outputs** and use **Add new receive / send**:
+   create 3 new tracks and give each one a receive from the Chaos Trigger track, using source channels **3/4**, **5/6** and **7/8**.
+3. Turn down the parent track's send to the master for channels 3–8 if you hear doubled audio.
+
+**Ableton Live**: insert it on a MIDI track. Create audio tracks and set **Audio From** to the Chaos Trigger track, picking *Lane 2 / 3 / 4*.
+
+**Logic Pro**: insert it as **Multi-Output (4×Stereo)**. Click the **+** in the mixer channel to add aux channels for lanes 2–4.
+
+**FL Studio**: in the plugin wrapper, go to *Processing* and assign each output pair to a different mixer track.
+
+---
+
+## Automation
+
+**Every knob, button and selector can be automated** (73 parameters). Automation lanes use the same names as the controls on the panel:
+
+- `PITCH`, `RETRIG / LEGATO`, `SYNC / FREE`, `FREE RATE (Hz)`, `CHAOS DIVIDER`, `CHAOS DIVIDER FEEL`, `SWING AMOUNT`, `CHAOS PICKER`
+- `MASTER DIST`, `MASTER HAAS (ms)`, `MASTER CRUSH (bits)`, `MASTER SMASH`, `MASTER RING MOD`, `MASTER RING HZ`, `MASTER FILTER`, `MASTER CUTOFF`, `MASTER RES`
+- For each lane: `LANE 1 A (Attack)`, `LANE 1 D (Decay)`, `LANE 1 S (Sustain)`, `LANE 1 R (Release)`, `LANE 1 PAN`, `LANE 1 VOL (dB)`, `LANE 1 POWER`, `LANE 1 MONO`, `LANE 1 REVERSE`, `LANE 1 DIST`, `LANE 1 HAAS (ms)`, `LANE 1 CRUSH (bits)`, `LANE 1 SMASH`, `LANE 1 CHORUS`, and the same for lanes 2–4
+
+**In Reaper:** click the track's **envelope / automation** button (or press the **Param** button in the plugin window → *Show track envelope*).
+You can also just touch a control in the plugin and use *"Last touched parameter"*.
+To control a parameter from a MIDI knob, use **Param → Learn**.
+
+The only thing that can't be automated is *which audio file* is loaded in a lane.
+
+**Automation ideas**
+- Automate **CHAOS PICKER** to change the lane order every bar.
+- Switch **CHAOS DIVIDER** from 16 to 32 for fills.
+- Toggle **LANE x POWER** to drop lanes in and out of the arrangement.
+- Sweep **MASTER CUTOFF** for builds and **MASTER CRUSH** for drops.
+
+---
+
+## Tips and recipes
+
+- **Instant re-arranged break:** load the same drum loop into all 4 lanes, set REVERSE on lane 3, choose pattern 13 (3124), at 1/16 STRAIGHT.
+- **Glitch stutter:** 1/32 or 1/64, A/D/R at 0, add CRUSH on one lane and SMASH on the master.
+- **Tape-stop-ish drops:** automate PITCH down to -12 at the end of a phrase.
+- **Wide pads from loops:** long ATTACK and RELEASE, CHORUS I on every lane, HAAS around 15 ms on two lanes.
+- **Polyrhythm chaos:** load loops at different tempos, choose RANDOOM and use FREE mode at an odd rate like 7.3 Hz.
+- **Live performance:** use LEGATO so playing new notes restarts the pattern without resetting the loops.
+
+---
+
+## Troubleshooting / FAQ
+
+**I hear nothing.**
+Check that a sample is loaded, that the lane's **POWER** is on, that its **VOL** isn't at the minimum, and that you're **holding a MIDI note**.
+Also check the **S (Sustain)** knob: if it's at 0, the sound fades out after the Decay.
+
+**It doesn't follow my DAW tempo.**
+Make sure **SYNC** is lit (not FREE). SYNC only sets the *step speed*. The loops themselves aren't time-stretched, so prepare them at your project tempo.
+
+**The plugin doesn't show up in my DAW.**
+Rescan plugins. On Windows, check `C:\Program Files\Common Files\VST3`. On Mac, check `/Library/Audio/Plug-Ins/VST3` (and `Components` for Logic).
+Logic users may need to restart Logic once after installing.
+
+**macOS says the plugin is damaged or can't be opened.**
+Open Terminal and run this once, then restart your DAW:
+```
+sudo xattr -cr "/Library/Audio/Plug-Ins/VST3/Chaos Trigger.vst3" "/Library/Audio/Plug-Ins/Components/Chaos Trigger.component"
+```
+
+**My samples are missing when I reopen a project.**
+Chaos Trigger remembers where each file is. If you moved or renamed the files, load them again.
+
+**Does the MIDI note change the pitch?**
+No. Any key triggers the sequencer, and pitch is set with the **PITCH** knob, which you can automate.
+
+---
+
+<div align="center">
+<sub>Chaos Trigger by iNi · Built with JUCE · Developers: see <a href="BUILDING.md">BUILDING.md</a></sub>
+</div>

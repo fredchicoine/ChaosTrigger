@@ -1,0 +1,50 @@
+name: Build Chaos Trigger
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            name: Mac
+            targets: ChaosTrigger_VST3 ChaosTrigger_AU ChaosTrigger_Standalone
+            extra: -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+          - os: windows-latest
+            name: Windows
+            targets: ChaosTrigger_VST3 ChaosTrigger_Standalone
+            extra: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get JUCE
+        run: git clone --depth 1 -b 8.0.4 https://github.com/juce-framework/JUCE JUCE
+      - name: Configure
+        shell: bash
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release ${{ matrix.extra }}
+      - name: Build
+        shell: bash
+        run: |
+          for t in ${{ matrix.targets }}; do
+            cmake --build build --config Release --target $t --parallel 4
+          done
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p out
+          cp -R build/ChaosTrigger_artefacts/Release/VST3/*.vst3 out/
+          if [ "${{ matrix.name }}" = "Mac" ]; then
+            cp -R build/ChaosTrigger_artefacts/Release/AU/*.component out/
+            cp -R "build/ChaosTrigger_artefacts/Release/Standalone/Chaos Trigger.app" out/
+          else
+            cp build/ChaosTrigger_artefacts/Release/Standalone/*.exe out/
+          fi
+          cp README.md out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ChaosTrigger-${{ matrix.name }}
+          path: out
